@@ -1,0 +1,30 @@
+{
+  "canisters": {
+    "ICP_final_project_backend": {
+      "candid": "src/ICP_final_project_backend/ICP_final_project_backend.did",
+      "package": "ICP_final_project_backend",
+      "type": "rust"
+    },
+    "ICP_final_project_frontend": {
+      "dependencies": [
+        "ICP_final_project_backend"
+      ],
+      "frontend": {
+        "entrypoint": "src/ICP_final_project_frontend/src/index.html"
+      },
+      "source": [
+        "src/ICP_final_project_frontend/assets",
+        "dist/ICP_final_project_frontend/"
+      ],
+      "type": "assets"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}

@@ -1,0 +1,4 @@
+[workspace]
+members = [
+    "src/ICP_final_project_backend",
+]
