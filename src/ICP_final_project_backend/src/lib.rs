@@ -73,6 +73,29 @@ fn get_item_count() -> u64 {
     ITEM_MAP.with(|p| p.borrow().len())
 }
 
+#[ic_cdk::query]
+fn get_list_of_items() -> Option<Item> {
+    for (k, v) in &ITEM_MAP {
+        ITEM_MAP.with(|p| p.borrow().get(k));
+    }
+}
+
+#[ic_cdk::query]
+fn most_expensive_item<K, V>(item_map: &StableBTreeMap<K, V>) -> Option<&V> where V: Ord {
+    item_map
+        .iter()
+        .max_by(|a, b| a.1.currentHighestBid.cmp(&b.1.currentHighestBid))
+        .map(|(_k, v)| v)
+}
+
+#[ic_cdk::query]
+fn most_bidded_item<K, V>(item_map: &StableBTreeMap<K, V>) -> Option<&V> where V: Ord {
+    item_map
+        .iter()
+        .max_by(|a, b| a.1.bidders.len().cmp(&b.1.bidders.len()))
+        .map(|(_k, v)| v)
+}
+
 #[ic_cdk::update]
 fn create_item(key: u64, item: CreateItem) -> Option<Item> {
     let value: Item = Item {
@@ -165,7 +188,7 @@ fn bid(key: u64, bid_amount: u32) -> Result<(), BidError> {
             return Err(BidError::ItemIsNotActive);
         }
 
-        if bid_amount > item.currentHighestBid {
+        if item.is_active && bid_amount > item.currentHighestBid {
             item.currentHighestBid = bid_amount;
             item.currentHighestBidder = caller;
         }
