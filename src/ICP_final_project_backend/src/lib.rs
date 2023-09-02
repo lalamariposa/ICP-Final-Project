@@ -8,11 +8,6 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 const MAX_VALUE_SIZE: u32 = 5000;
 
-// #[derive(CandidType, Deserialize)]
-// enum Bid {
-//     BidAmount,
-// }
-
 #[derive(CandidType)]
 enum BidError {
     ItemIsNotActive,
@@ -58,21 +53,25 @@ thread_local! {
         MemoryManager::init(DefaultMemoryImpl::default())
     );
 
+    //list of items
     static ITEM_MAP: RefCell<StableBTreeMap<u64, Item, Memory>> = RefCell::new(
         StableBTreeMap::init(MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0))))
     );
 }
 
+//get an item
 #[ic_cdk::query]
 fn get_item(key: u64) -> Option<Item> {
     ITEM_MAP.with(|p| p.borrow().get(&key))
 }
 
+//get the length of items
 #[ic_cdk::query]
 fn get_item_count() -> u64 {
     ITEM_MAP.with(|p| p.borrow().len())
 }
 
+//get a list of items
 #[ic_cdk::query]
 fn get_list_of_items() -> Option<Item> {
     for (k, v) in &ITEM_MAP {
@@ -80,6 +79,7 @@ fn get_list_of_items() -> Option<Item> {
     }
 }
 
+//get the item sold for the most
 #[ic_cdk::query]
 fn most_expensive_item<K, V>(item_map: &StableBTreeMap<K, V>) -> Option<&V> where V: Ord {
     item_map
@@ -88,6 +88,7 @@ fn most_expensive_item<K, V>(item_map: &StableBTreeMap<K, V>) -> Option<&V> wher
         .map(|(_k, v)| v)
 }
 
+//get the item that has been bid on the most
 #[ic_cdk::query]
 fn most_bidded_item<K, V>(item_map: &StableBTreeMap<K, V>) -> Option<&V> where V: Ord {
     item_map
@@ -113,6 +114,7 @@ fn create_item(key: u64, item: CreateItem) -> Option<Item> {
 #[ic_cdk::update]
 fn edit_item(key: u64, item: CreateItem) -> Result<(), BidError> {
     ITEM_MAP.with(|p| {
+        //get item from StableBTreeMap
         let old_item_opt = p.borrow().get(&key);
         let old_item = match old_item_opt {
             Some(value) => value,
@@ -121,10 +123,12 @@ fn edit_item(key: u64, item: CreateItem) -> Result<(), BidError> {
             }
         };
 
+        //check the owner
         if ic_cdk::caller() != old_item.owner {
             return Err(BidError::AccessRejected);
         }
 
+        //create edited item
         let value = Item {
             description: item.description,
             currentHighestBid: old_item.currentHighestBid,
@@ -134,6 +138,7 @@ fn edit_item(key: u64, item: CreateItem) -> Result<(), BidError> {
             owner: ic_cdk::caller(),
         };
 
+        //insert it back
         let res = p.borrow().insert(key, value);
 
         match res {
@@ -146,6 +151,7 @@ fn edit_item(key: u64, item: CreateItem) -> Result<(), BidError> {
 #[ic_cdk::update]
 fn end_item(key: u64) -> Result<(), BidError> {
     ITEM_MAP.with(|p| {
+        //get item from StableBTreeMap
         let item_opt = p.borrow().get(&key);
         let mut item = match item_opt {
             Some(value) => value,
@@ -154,16 +160,19 @@ fn end_item(key: u64) -> Result<(), BidError> {
             }
         };
 
+        //check the owner
         if ic_cdk::caller() != item.owner {
             return Err(BidError::AccessRejected);
         }
 
+        //stop listing the item
         item.is_active = false;
         item.owner = item.currentHighestBidder;
         item.currentHighestBid = 0u32;
         item.currentHighestBidder = "";
         item.bidders = vec![];
 
+        //insert it back
         let res = p.borrow().insert(key, item);
 
         match res {
@@ -176,6 +185,7 @@ fn end_item(key: u64) -> Result<(), BidError> {
 #[ic_cdk::update]
 fn bid(key: u64, bid_amount: u32) -> Result<(), BidError> {
     ITEM_MAP.with(|p| {
+        //get item from StableBTreeMap
         let item_opt = p.borrow().get(&key);
         let mut item = match item_opt {
             Some(value) => value,
@@ -184,11 +194,13 @@ fn bid(key: u64, bid_amount: u32) -> Result<(), BidError> {
 
         let caller: Principal = ic_cdk::caller();
 
+        //check if item is active
         if item.is_active == false {
             return Err(BidError::ItemIsNotActive);
         }
 
-        if item.is_active && bid_amount > item.currentHighestBid {
+        //if caller bids higher then the previous bidders edit the item
+        if bid_amount > item.currentHighestBid {
             item.currentHighestBid = bid_amount;
             item.currentHighestBidder = caller;
         }
