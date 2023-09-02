@@ -80,7 +80,6 @@ fn get_list_of_items() -> Option<Item> {
 }
 
 //get the item sold for the most
-#[ic_cdk::query]
 fn most_expensive_item<K, V>(item_map: &StableBTreeMap<K, V>) -> Option<&V> where V: Ord {
     item_map
         .iter()
@@ -89,7 +88,6 @@ fn most_expensive_item<K, V>(item_map: &StableBTreeMap<K, V>) -> Option<&V> wher
 }
 
 //get the item that has been bid on the most
-#[ic_cdk::query]
 fn most_bidded_item<K, V>(item_map: &StableBTreeMap<K, V>) -> Option<&V> where V: Ord {
     item_map
         .iter()
