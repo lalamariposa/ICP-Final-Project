@@ -1,3 +1,43 @@
+type BidError = 
+    variant {
+        ItemIsNotActive;
+        InvalidAmount;
+        NoSuchItem;
+        AccessRejected;
+        UpdateError;
+    };
+
+type Item = 
+    record {
+        description: text;
+        currentHighestBid: nat32;
+        currentHighestBidder: nat32;
+        is_active: bool;
+        bidders: vec principal;
+        owner: principal;
+    };
+
+type CreateItem = 
+    record {
+        description: text;
+        is_active: bool;
+    };
+
+type Result = 
+    variant {
+        Ok;
+        Err: VoteError;
+    };
+
 service : {
-    "greet": (text) -> (text) query;
+    "get_item": (nat64) -> (opt Proposal) query;
+    "get_item_count": () -> (nat64) query;
+    "get_list_of_items" () -> (opt Proposal) query;
+    "most_expensive_item" (StableBTreeMap) -> () query;
+    "most_bidded_item" (StableBTreeMap) -> () query;
+    "create_item": (nat64,CreateProposal) -> (opt Proposal);
+    "edit_item": (nat64, CreateProposal) -> (Result);
+    "end_item": (nat64) -> (Result);
+    "bid": (nat64, nat32) -> (Result);
 }
+
