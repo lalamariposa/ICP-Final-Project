@@ -73,10 +73,13 @@ fn get_item_count() -> u64 {
 
 //get a list of items
 #[ic_cdk::query]
-fn get_list_of_items() -> Option<Item> {
-    for (k, v) in &ITEM_MAP {
-        ITEM_MAP.with(|p| p.borrow().get(k));
-    }
+fn get_list_of_items() -> Vec<&Item> {
+    // for (k, v) in ITEM_MAP.iter() {
+    //     ITEM_MAP.with(|p| p.borrow().get(k));
+    // }
+    let item_map = ITEM_MAP.borrow_mut();
+    let items: Vec<&Item> = item_map.values().collect();
+    items
 }
 
 //get the item sold for the most
