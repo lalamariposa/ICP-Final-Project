@@ -3,6 +3,7 @@ use ic_stable_structures::memory_manager::{ MemoryId, MemoryManager, VirtualMemo
 use ic_stable_structures::{ BoundedStorable, DefaultMemoryImpl, StableBTreeMap, Storable };
 use std::{ borrow::Cow, cell::RefCell };
 use candid::Principal;
+use candid::types::Type::Principal;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -21,7 +22,7 @@ enum BidError {
 struct Item {
     description: String,
     currentHighestBid: u32,
-    currentHighestBidder: u32,
+    currentHighestBidder: candid::Principal,
     is_active: bool,
     bidders: Vec<candid::Principal>,
     owner: candid::Principal,
@@ -35,11 +36,11 @@ struct CreateItem {
 
 impl Storable for Item {
     fn to_bytes(&self) -> Cow<[u8]> {
-        Cow::Owned(Encode!(self).unwrap());
+        Cow::Owned(Encode!(self).unwrap())
     }
 
     fn from_bytes(bytes: Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap();
+        Decode!(bytes.as_ref(), Self).unwrap()
     }
 }
 
@@ -57,6 +58,12 @@ thread_local! {
     static ITEM_MAP: RefCell<StableBTreeMap<u64, Item, Memory>> = RefCell::new(
         StableBTreeMap::init(MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0))))
     );
+}
+
+impl LocalKey {
+    pub fn iter(&self) -> Iter<u64> {
+        self.ITEM_MAP.borrow().iter()
+    }
 }
 
 //get an item
@@ -83,17 +90,15 @@ fn get_list_of_items() -> Vec<&Item> {
 }
 
 //get the item sold for the most
-fn most_expensive_item<K, V>(item_map: &StableBTreeMap<K, V>) -> Option<&V> where V: Ord {
-    item_map
-        .iter()
+fn most_expensive_item() -> Option<Item> {
+    ITEM_MAP.iter()
         .max_by(|a, b| a.1.currentHighestBid.cmp(&b.1.currentHighestBid))
         .map(|(_k, v)| v)
 }
 
 //get the item that has been bid on the most
-fn most_bidded_item<K, V>(item_map: &StableBTreeMap<K, V>) -> Option<&V> where V: Ord {
-    item_map
-        .iter()
+fn most_bidded_item() -> Option<Item> {
+    ITEM_MAP.iter()
         .max_by(|a, b| a.1.bidders.len().cmp(&b.1.bidders.len()))
         .map(|(_k, v)| v)
 }
@@ -103,7 +108,7 @@ fn create_item(key: u64, item: CreateItem) -> Option<Item> {
     let value: Item = Item {
         description: item.description,
         currentHighestBid: 0u32,
-        currentHighestBidder: "",
+        currentHighestBidder: Principal, //candid::
         is_active: item.is_active,
         bidders: vec![],
         owner: ic_cdk::caller(),
@@ -170,7 +175,7 @@ fn end_item(key: u64) -> Result<(), BidError> {
         item.is_active = false;
         item.owner = item.currentHighestBidder;
         item.currentHighestBid = 0u32;
-        item.currentHighestBidder = "";
+        item.currentHighestBidder = Principal; //candid::
         item.bidders = vec![];
 
         //insert it back
