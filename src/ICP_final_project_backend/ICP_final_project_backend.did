@@ -32,7 +32,7 @@ type Result =
 service : {
     "get_item": (nat64) -> (opt Proposal) query;
     "get_item_count": () -> (nat64) query;
-    "get_list_of_items" () -> (opt Proposal) query;
+    "get_list_of_items" () -> (vec Item) query;
     "most_expensive_item" (StableBTreeMap) -> () query;
     "most_bidded_item" (StableBTreeMap) -> () query;
     "create_item": (nat64,CreateProposal) -> (opt Proposal);
